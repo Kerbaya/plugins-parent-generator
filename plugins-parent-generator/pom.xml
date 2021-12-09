@@ -1,0 +1,164 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+<modelVersion>4.0.0</modelVersion>
+
+<parent>
+	<groupId>com.kerbaya</groupId>
+	<artifactId>plugins-parent</artifactId>
+	<version>1</version>
+	<relativePath/>
+</parent>
+
+<artifactId>plugins-parent-generator</artifactId>
+
+<properties>
+	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+</properties>
+
+<description>Creates an up-to-date pom.xml for plugins-parent</description>
+
+<dependencies>
+	<dependency>
+		<groupId>junit</groupId>
+		<artifactId>junit</artifactId>
+		<version>4.13.2</version>
+		<scope>test</scope>
+	</dependency>
+</dependencies>
+
+<build>
+	<pluginManagement>
+		<plugins>
+			<!--
+			Add any extra plugins (beyond the previous parent release) that you want 
+			included in the next plugins-parent here
+			-->
+		</plugins>
+	</pluginManagement>
+	<plugins>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-compiler-plugin</artifactId>
+			<configuration>
+				<target>1.8</target>
+				<source>1.8</source>
+			</configuration>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-dependency-plugin</artifactId>
+			<executions>
+				<!--
+				Copy the original plugins-parent.pom for a comparison-test against the new one 
+				-->
+				<execution>
+					<?m2e ignore?>
+					<phase>generate-test-resources</phase>
+					<goals>
+						<goal>copy</goal>
+					</goals>
+					<configuration>
+						<artifactItems>
+							<artifactItem>
+								<groupId>${project.parent.groupId}</groupId>
+								<artifactId>${project.parent.artifactId}</artifactId>
+								<version>${project.parent.version}</version>
+								<type>pom</type>
+								<destFileName>original-pom.xml</destFileName>
+								<outputDirectory>${project.build.directory}</outputDirectory>
+							</artifactItem>
+						</artifactItems>
+					</configuration>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.codehaus.mojo</groupId>
+			<artifactId>versions-maven-plugin</artifactId>
+			<executions>
+				<!--
+				Generate a report of new versions available for all managed plugins 
+				-->
+				<execution>
+					<phase>generate-resources</phase>
+					<goals>
+						<goal>plugin-updates-report</goal>
+					</goals>
+					<configuration>
+						<formats>
+							<format>xml</format>
+						</formats>
+					</configuration>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.codehaus.mojo</groupId>
+			<artifactId>xml-maven-plugin</artifactId>
+			<executions>
+				<!--
+				Transform the version report to generate a new plugins-parent.pom 
+				-->
+				<execution>
+					<phase>generate-resources</phase>
+					<goals>
+						<goal>transform</goal>
+					</goals>
+					<configuration>
+						<transformationSets>
+							<transformationSet>
+								<dir>${project.build.directory}</dir>
+								<includes>
+									<include>plugin-updates-report.xml</include>
+								</includes>
+								<stylesheet>src/main/xsl/generate-pom.xsl</stylesheet>
+								<parameters>
+									<parameter>
+										<name>previousVersion</name>
+										<value>${project.parent.version}</value>
+									</parameter>
+									<parameter>
+										<name>timestamp</name>
+										<value>${maven.build.timestamp}</value>
+									</parameter>
+									<parameter>
+										<name>generatorGav</name>
+										<value>${project.groupId}:${project.artifactId}:${project.version}</value>
+									</parameter>
+									<parameter>
+										<name>parentGav</name>
+										<value>${project.parent.groupId}:${project.parent.artifactId}:${project.parent.version}</value>
+									</parameter>
+								</parameters>
+								<outputDir>${project.build.directory}</outputDir>
+								<fileMappers>
+									<fileMapper
+										implementation="org.codehaus.plexus.components.io.filemappers.MergeFileMapper">
+										<targetName>generated-pom.xml</targetName>
+									</fileMapper>
+								</fileMappers>
+							</transformationSet>
+						</transformationSets>
+					</configuration>
+				</execution>
+			</executions>
+		</plugin>
+		<plugin>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-jar-plugin</artifactId>
+			<executions>
+				<!--
+				We're only using a jar project-type to leverage Java unit tests  
+				-->
+				<execution>
+					<id>default-jar</id>
+					<phase>never</phase>
+				</execution>
+			</executions>
+		</plugin>
+	</plugins>
+</build>
+
+</project>
